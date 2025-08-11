@@ -1,24 +1,8 @@
-const express = require('express');
+require("dotenv").config();
+const app = require("./app");
 
-const app = express();
-const PORT = 3000;
+const PORT = process.env.PORT || 5000;
 
-// Middleware
-app.use(express.json());
-
-// Routes
-app.get('/', (req, res) => {
-  res.send('API is running 🚀');
-});
-
-app.get('/api/users', (req, res) => {
-  res.json([
-    { id: 1, name: 'John' },
-    { id: 2, name: 'Jane' }
-  ]);
-});
-
-// Start server
 app.listen(PORT, () => {
-  console.log(`Server running on http://localhost:${PORT}`);
+  console.log(`🚀 Server running on http://localhost:${PORT}`);
 });
