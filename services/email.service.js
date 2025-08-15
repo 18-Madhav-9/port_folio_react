@@ -1,10 +1,5 @@
 const nodemailer = require('nodemailer');
 
-// --------------------
-// Transporter Configurations
-// --------------------
-
-// Primary SMTP (e.g., Hostinger)
 const smtpTransporter = (process.env.EMAIL_HOST && process.env.EMAIL_PASS)
   ? nodemailer.createTransport({
       host: process.env.EMAIL_HOST,
@@ -15,12 +10,12 @@ const smtpTransporter = (process.env.EMAIL_HOST && process.env.EMAIL_PASS)
         pass: process.env.EMAIL_PASS,
       },
       tls: {
-        rejectUnauthorized: false // Helps with self-signed certs on some shared hosts
+        rejectUnauthorized: false 
+
       }
     })
   : null;
 
-// Fallback Gmail
 const gmailTransporter = (process.env.GMAIL_USER && process.env.GMAIL_PASS)
   ? nodemailer.createTransport({
       service: "gmail",
@@ -37,33 +32,28 @@ if (process.env.NODE_ENV !== 'production') {
   console.log(gmailTransporter ? "✅ Gmail fallback is configured" : "❌ Gmail fallback NOT configured");
 }
 
-/**
- * Sanitize HTML to prevent injection in the notification email
- */
 const escapeHtml = (text = '') =>
   String(text)
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;') // Fixed: was &quot;
+    .replace(/>/g, '&gt;') 
+
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#39;');
 
-/**
- * Sends a contact form email with automatic fallback logic.
- */
 const sendContactEmail = async ({ name, email, message }) => {
-  // 1. Validation
+
   if (!process.env.MY_EMAIL) {
     throw new Error('Configuration Error: MY_EMAIL is not defined');
   }
   if (!name || !email || !message) {
     throw new Error('Validation Error: All fields (name, email, message) are required');
   }
-  
-  // Base mail options (omitting the "from" property which is assigned per-transporter)
+
   const baseMailOptions = {
     to: process.env.MY_EMAIL,
-    replyTo: email, // Allows you to hit 'Reply' directly in your email client
+    replyTo: email, 
+
     subject: `New Message from ${name}`,
     text: `Name: ${name}\nEmail: ${email}\n\nMessage:\n${message}`,
     html: `
@@ -81,10 +71,8 @@ const sendContactEmail = async ({ name, email, message }) => {
     `,
   };
 
-  // 2. Execution with Fallback Logic
   let lastError;
 
-  // Try Primary SMTP
   if (smtpTransporter) {
     try {
       const info = await smtpTransporter.sendMail({
@@ -99,7 +87,6 @@ const sendContactEmail = async ({ name, email, message }) => {
     }
   }
 
-  // Try Fallback Gmail
   if (gmailTransporter) {
     try {
       const info = await gmailTransporter.sendMail({
@@ -114,7 +101,6 @@ const sendContactEmail = async ({ name, email, message }) => {
     }
   }
 
-  // If we reach here, both failed (or weren't configured)
   throw lastError || new Error("No valid email transporter was configured");
 };
 
