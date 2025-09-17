@@ -18,7 +18,7 @@ const API_BASE_URL = "http://localhost:5000/api";
 async function fetchGithubStats() {
   try {
     const res = await fetch(`${API_BASE_URL}/github/stats`);
-    if (!res.ok) throw new Error("Failed");
+    if (!res.ok) throw new Error();
     return await res.json();
   } catch {
     return {
@@ -39,23 +39,43 @@ async function fetchGithubStats() {
   }
 }
 
+async function fetchLeetCodeData() {
+  try {
+    const res = await fetch(`${API_BASE_URL}/stats/leetcode/stats`);
+    if (!res.ok) throw new Error();
+    return await res.json();
+  } catch {
+    return {
+      profile: { profileUrl: "https://leetcode.com" },
+      heatmap: {
+        "2026-01-01": 3,
+        "2026-01-02": 1,
+      },
+    };
+  }
+}
+
+async function fetchCodeChefData() {
+  try {
+    const res = await fetch(`${API_BASE_URL}/stats/codechef/stats`);
+    if (!res.ok) throw new Error();
+    return await res.json();
+  } catch {
+    return {
+      profile: { profileUrl: "https://codechef.com" },
+      heatmap: {
+        "2026-01-01": 2,
+        "2026-01-02": 4,
+      },
+    };
+  }
+}
+
 const StatCard = ({ stat }) => (
-  <div className="p-4 bg-white rounded-xl shadow text-center hover:shadow-md transition">
+  <div className="p-4 bg-white rounded-xl shadow text-center">
     <stat.icon className={`mx-auto mb-2 ${stat.color}`} />
     <p className="text-xl font-bold">{stat.value}</p>
     <p className="text-xs text-gray-500">{stat.label}</p>
-  </div>
-);
-
-const GithubHeatmap = ({ heatmap }) => (
-  <div className="p-4 bg-white rounded-xl shadow">
-    <div className="flex items-center gap-2 mb-3">
-      <FaGithub className="text-black" />
-      <h3 className="font-bold">GitHub Activity</h3>
-    </div>
-    <p className="text-sm text-gray-500">
-      {heatmap?.totalContributions || 0} contributions
-    </p>
   </div>
 );
 
@@ -71,54 +91,97 @@ const ProfileCard = ({ profile }) => (
   </a>
 );
 
+const PlatformHeatmap = ({ title, icon: Icon, data, color }) => {
+  const grid = useMemo(() => {
+    const entries = Object.entries(data || {});
+    const max = Math.max(...entries.map(([, v]) => v || 0), 1);
+
+    return entries.map(([date, count]) => ({
+      date,
+      count,
+      intensity: Math.ceil((count / max) * 4),
+    }));
+  }, [data]);
+
+  const colors = [
+    "bg-gray-200",
+    `${color}-200`,
+    `${color}-400`,
+    `${color}-600`,
+  ];
+
+  return (
+    <div className="p-4 bg-white rounded-xl shadow">
+      <div className="flex items-center gap-2 mb-3">
+        <Icon className={`w-5 h-5 ${color}-500`} />
+        <h3 className="font-bold">{title}</h3>
+      </div>
+
+      <div className="flex flex-wrap gap-1">
+        {grid.map((d) => (
+          <div
+            key={d.date}
+            className={`w-3 h-3 rounded-sm ${colors[d.intensity]}`}
+            title={`${d.date}: ${d.count}`}
+          />
+        ))}
+      </div>
+    </div>
+  );
+};
+
 export default function Stats() {
-  const [githubData, setGithubData] = useState(null);
+  const [github, setGithub] = useState(null);
+  const [leetcode, setLeetcode] = useState(null);
+  const [codechef, setCodechef] = useState(null);
 
   useEffect(() => {
-    fetchGithubStats().then(setGithubData);
+    fetchGithubStats().then(setGithub);
+    fetchLeetCodeData().then(setLeetcode);
+    fetchCodeChefData().then(setCodechef);
   }, []);
 
   const stats = useMemo(() => {
-    if (!githubData) return [];
+    if (!github) return [];
     return [
       {
-        label: "Total Contributions",
-        value: githubData.stats.contributions,
+        label: "Contributions",
+        value: github.stats.contributions,
         icon: GitPullRequest,
         color: "text-emerald-500",
       },
       {
         label: "Code Volume",
-        value: githubData.stats.codeVolumeLabel,
+        value: github.stats.codeVolumeLabel,
         icon: Code,
         color: "text-orange-500",
       },
       {
-        label: "Public Repos",
-        value: githubData.stats.publicRepos,
+        label: "Repos",
+        value: github.stats.publicRepos,
         icon: Terminal,
         color: "text-amber-500",
       },
       {
-        label: "GitHub Stars",
-        value: githubData.stats.stars,
+        label: "Stars",
+        value: github.stats.stars,
         icon: Star,
         color: "text-yellow-500",
       },
     ];
-  }, [githubData]);
+  }, [github]);
 
   const profiles = useMemo(
     () => [
       {
         name: "GitHub",
-        url: githubData?.profile?.profileUrl || "https://github.com",
+        url: github?.profile?.profileUrl,
         icon: FaGithub,
         color: "text-black",
       },
       {
         name: "LeetCode",
-        url: "https://leetcode.com",
+        url: leetcode?.profile?.profileUrl,
         icon: SiLeetcode,
         color: "text-orange-500",
       },
@@ -130,15 +193,15 @@ export default function Stats() {
       },
       {
         name: "CodeChef",
-        url: "https://codechef.com",
+        url: codechef?.profile?.profileUrl,
         icon: SiCodechef,
         color: "text-amber-700",
       },
     ],
-    [githubData]
+    [github, leetcode, codechef]
   );
 
-  if (!githubData) return <p className="p-6">Loading...</p>;
+  if (!github) return <p className="p-6">Loading...</p>;
 
   return (
     <div className="space-y-8 p-6">
@@ -154,16 +217,40 @@ export default function Stats() {
       </div>
 
       {}
-      <GithubHeatmap heatmap={githubData.heatmap} />
-
-      {}
       <div>
-        <h2 className="text-lg font-bold mb-3">Coding Profiles</h2>
-
+        <h2 className="font-bold mb-3">Coding Profiles</h2>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {profiles.map((p) => (
             <ProfileCard key={p.name} profile={p} />
           ))}
+        </div>
+      </div>
+
+      {}
+      <div>
+        <h2 className="font-bold mb-3">Platform Activity Heatmaps</h2>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <PlatformHeatmap
+            title="LeetCode Activity"
+            icon={SiLeetcode}
+            data={leetcode?.heatmap}
+            color="orange"
+          />
+
+          <PlatformHeatmap
+            title="CodeChef Activity"
+            icon={SiCodechef}
+            data={codechef?.heatmap}
+            color="amber"
+          />
+
+          <PlatformHeatmap
+            title="GitHub Activity"
+            icon={FaGithub}
+            data={{}}
+            color="gray"
+          />
         </div>
       </div>
 
