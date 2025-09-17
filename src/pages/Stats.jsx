@@ -4,6 +4,9 @@ import {
   Code,
   Star,
   Terminal,
+  Award,
+  ExternalLink,
+  Calendar,
 } from "lucide-react";
 
 import { FaGithub } from "react-icons/fa";
@@ -14,6 +17,8 @@ import {
 } from "react-icons/si";
 
 const API_BASE_URL = "http://localhost:5000/api";
+
+/* -------------------- FETCH FUNCTIONS -------------------- */
 
 async function fetchGithubStats() {
   try {
@@ -28,13 +33,10 @@ async function fetchGithubStats() {
         publicRepos: 48,
         stars: 312,
       },
-      heatmap: {
-        totalContributions: 2451,
-        weeks: [],
-      },
       profile: {
         profileUrl: "https://github.com",
       },
+      heatmap: {},
     };
   }
 }
@@ -71,6 +73,31 @@ async function fetchCodeChefData() {
   }
 }
 
+async function fetchCertificates() {
+  try {
+    const res = await fetch(`${API_BASE_URL}/certificates`);
+    if (!res.ok) throw new Error();
+    return await res.json();
+  } catch {
+    return [
+      {
+        title: "CS50: Introduction to Computer Science",
+        issuer: "Harvard University",
+        date: "Dec 2023",
+        link: "https://pll.harvard.edu/course/cs50-introduction-computer-science",
+      },
+      {
+        title: "Full Stack Open",
+        issuer: "University of Helsinki",
+        date: "Jan 2024",
+        link: "https://fullstackopen.com/en/",
+      },
+    ];
+  }
+}
+
+/* -------------------- UI COMPONENTS -------------------- */
+
 const StatCard = ({ stat }) => (
   <div className="p-4 bg-white rounded-xl shadow text-center">
     <stat.icon className={`mx-auto mb-2 ${stat.color}`} />
@@ -91,38 +118,26 @@ const ProfileCard = ({ profile }) => (
   </a>
 );
 
+/* -------------------- HEATMAP -------------------- */
+
 const PlatformHeatmap = ({ title, icon: Icon, data, color }) => {
-  const grid = useMemo(() => {
-    const entries = Object.entries(data || {});
-    const max = Math.max(...entries.map(([, v]) => v || 0), 1);
-
-    return entries.map(([date, count]) => ({
-      date,
-      count,
-      intensity: Math.ceil((count / max) * 4),
-    }));
-  }, [data]);
-
-  const colors = [
-    "bg-gray-200",
-    `${color}-200`,
-    `${color}-400`,
-    `${color}-600`,
-  ];
+  const grid = useMemo(() => Object.entries(data || []), [data]);
 
   return (
     <div className="p-4 bg-white rounded-xl shadow">
       <div className="flex items-center gap-2 mb-3">
-        <Icon className={`w-5 h-5 ${color}-500`} />
+        <Icon className={`w-5 h-5 text-${color}-500`} />
         <h3 className="font-bold">{title}</h3>
       </div>
 
       <div className="flex flex-wrap gap-1">
-        {grid.map((d) => (
+        {grid.map(([date, count]) => (
           <div
-            key={d.date}
-            className={`w-3 h-3 rounded-sm ${colors[d.intensity]}`}
-            title={`${d.date}: ${d.count}`}
+            key={date}
+            className={`w-3 h-3 rounded-sm ${
+              count > 0 ? `bg-${color}-400` : "bg-gray-200"
+            }`}
+            title={`${date}: ${count}`}
           />
         ))}
       </div>
@@ -130,17 +145,50 @@ const PlatformHeatmap = ({ title, icon: Icon, data, color }) => {
   );
 };
 
+/* -------------------- CERTIFICATE CARD (NEW) -------------------- */
+
+const CertificateCard = ({ cert }) => (
+  <a
+    href={cert.link}
+    target="_blank"
+    rel="noopener noreferrer"
+    className="p-4 bg-white rounded-xl shadow hover:shadow-md transition group"
+  >
+    <div className="flex justify-between items-start mb-2">
+      <Award className="text-amber-500" />
+      <span className="text-xs text-gray-500 flex items-center gap-1">
+        <Calendar className="w-3 h-3" />
+        {cert.date}
+      </span>
+    </div>
+
+    <h4 className="font-bold group-hover:text-amber-600 transition">
+      {cert.title}
+    </h4>
+    <p className="text-sm text-gray-500">{cert.issuer}</p>
+
+    <div className="mt-3 text-xs text-amber-600 flex items-center gap-1">
+      View Certificate <ExternalLink className="w-3 h-3" />
+    </div>
+  </a>
+);
+
+/* -------------------- MAIN COMPONENT -------------------- */
+
 export default function Stats() {
   const [github, setGithub] = useState(null);
   const [leetcode, setLeetcode] = useState(null);
   const [codechef, setCodechef] = useState(null);
+  const [certificates, setCertificates] = useState([]);
 
   useEffect(() => {
     fetchGithubStats().then(setGithub);
     fetchLeetCodeData().then(setLeetcode);
     fetchCodeChefData().then(setCodechef);
+    fetchCertificates().then(setCertificates);
   }, []);
 
+  /* -------------------- STATS -------------------- */
   const stats = useMemo(() => {
     if (!github) return [];
     return [
@@ -171,6 +219,7 @@ export default function Stats() {
     ];
   }, [github]);
 
+  /* -------------------- PROFILES -------------------- */
   const profiles = useMemo(
     () => [
       {
@@ -206,17 +255,17 @@ export default function Stats() {
   return (
     <div className="space-y-8 p-6">
 
-      {}
+      {/* HEADER */}
       <h1 className="text-2xl font-bold">Dashboard Stats</h1>
 
-      {}
+      {/* STATS */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {stats.map((s) => (
           <StatCard key={s.label} stat={s} />
         ))}
       </div>
 
-      {}
+      {/* PROFILES */}
       <div>
         <h2 className="font-bold mb-3">Coding Profiles</h2>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -226,31 +275,39 @@ export default function Stats() {
         </div>
       </div>
 
-      {}
+      {/* HEATMAPS */}
       <div>
-        <h2 className="font-bold mb-3">Platform Activity Heatmaps</h2>
-
+        <h2 className="font-bold mb-3">Activity Heatmaps</h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <PlatformHeatmap
-            title="LeetCode Activity"
+            title="LeetCode"
             icon={SiLeetcode}
             data={leetcode?.heatmap}
             color="orange"
           />
-
           <PlatformHeatmap
-            title="CodeChef Activity"
+            title="CodeChef"
             icon={SiCodechef}
             data={codechef?.heatmap}
             color="amber"
           />
-
           <PlatformHeatmap
-            title="GitHub Activity"
+            title="GitHub"
             icon={FaGithub}
-            data={{}}
+            data={github?.heatmap}
             color="gray"
           />
+        </div>
+      </div>
+
+      {/* CERTIFICATES (NEW IN COMMIT 5) */}
+      <div>
+        <h2 className="font-bold mb-3">Certificates & Achievements</h2>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {certificates.map((cert) => (
+            <CertificateCard key={cert.title} cert={cert} />
+          ))}
         </div>
       </div>
 
