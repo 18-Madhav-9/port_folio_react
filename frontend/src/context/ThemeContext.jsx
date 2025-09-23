@@ -4,18 +4,22 @@ const ThemeContext = createContext();
 
 const ThemeProvider = ({ children }) => {
   const [isDark, setIsDark] = useState(() => {
-    const saved = localStorage.getItem('portfolio-theme');
-    if (saved) return saved === 'dark';
-    return window.matchMedia &&
-      window.matchMedia('(prefers-color-scheme: dark)').matches;
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem('portfolio-theme');
+      if (saved) return saved === 'dark';
+      return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+    }
+    return false;
   });
 
   useEffect(() => {
-    localStorage.setItem('portfolio-theme', isDark ? 'dark' : 'light');
+    const root = document.documentElement;
     if (isDark) {
-      document.documentElement.classList.add('dark');
+      root.classList.add('dark');
+      localStorage.setItem('portfolio-theme', 'dark');
     } else {
-      document.documentElement.classList.remove('dark');
+      root.classList.remove('dark');
+      localStorage.setItem('portfolio-theme', 'light');
     }
   }, [isDark]);
 

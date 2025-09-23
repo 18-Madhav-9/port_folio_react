@@ -30,7 +30,7 @@ const Home = () => (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
       {[
         { title: "Frontend", desc: "React, Tailwind, Next.js", icon: Code, color: "text-blue-500", bg: "bg-blue-500/10" },
-        { title: "Backend", desc: "Node, Express, PostgreSQL", icon: Layers, color: "text-amber-500", bg: "bg-amber-500/10" },
+        { title: "Backend", desc: "Node, Express, MongoDB", icon: Layers, color: "text-amber-500", bg: "bg-amber-500/10" },
         { title: "System", desc: "C++, C", icon: Binary, color: "text-purple-500", bg: "bg-purple-500/10" }
       ].map((feature, i) => (
         <div key={i} className="bg-white/60 dark:bg-slate-800/60 backdrop-blur-lg border border-white/40 dark:border-slate-700/50 p-6 rounded-2xl shadow-lg shadow-black/5 dark:shadow-black/20 hover:-translate-y-1 transition-all duration-300 flex items-start gap-4">
