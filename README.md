@@ -1,6 +1,6 @@
 <div align="center">
 
-# ✨ Portfolio Portable
+# ✨ Open Portfolio
 ### Dynamic • Modular • Developer Portfolio Platform
 
 <p align="center">
